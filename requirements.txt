@@ -3,7 +3,6 @@ folium
 streamlit-folium
 streamlit-javascript
 requests
-sqlite3
 pandas
 geopy
 graphhopper-py
