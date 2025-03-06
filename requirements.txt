@@ -5,4 +5,4 @@ streamlit-javascript
 requests
 pandas
 geopy
-graphhopper-py
+
