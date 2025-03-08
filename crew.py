@@ -90,31 +90,125 @@ def create_map(center_lat, center_lon, zoom=12):
 # ✅ **Database Connection*
 import shutil
 
-DB_NAME = "outage_management.db"  
-DB_PATH = f"/tmp/{DB_NAME}"  
+# ✅ Define Database Path
+DB_NAME = "outage_management.db"
+DB_PATH = f"/tmp/{DB_NAME}"
 
-# ✅ Check if database already exists in /tmp/
+# ✅ Copy Database to /tmp/ if it doesn't exist
 if not os.path.exists(DB_PATH):
-    if os.path.exists(DB_NAME):  
-        shutil.copy(DB_NAME, DB_PATH)  
-        st.success("✅ Database copied to /tmp/ successfully!")
+    if os.path.exists(DB_NAME):
+        shutil.copy(DB_NAME, DB_PATH)
+        st.success("✅ Database copied successfully!")
     else:
         st.error("❌ Database file missing in app directory!")
 
-# ✅ Try connecting and fetching tables
-try:
+# ✅ Function to Create All Tables
+def setup_database():
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
+
+    # ✅ **Customer Table**
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Customer (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        meter_number TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL
+    )
+    """)
+
+    # ✅ **Outage Table**
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Outage (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        report_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'Pending',
+        assigned_crew_id INTEGER DEFAULT NULL,
+        FOREIGN KEY (customer_id) REFERENCES Customer(id),
+        FOREIGN KEY (assigned_crew_id) REFERENCES Crew(id)
+    )
+    """)
+
+    # ✅ **Crew Table**
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Crew (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        status TEXT DEFAULT 'Available'
+    )
+    """)
+
+    # ✅ **Task Table** (Tracking assigned tasks)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Task (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        crew_id INTEGER NOT NULL,
+        outage_id INTEGER NOT NULL,
+        distance REAL NOT NULL,
+        eta REAL NOT NULL,
+        status TEXT DEFAULT 'Assigned',
+        FOREIGN KEY (crew_id) REFERENCES Crew(id),
+        FOREIGN KEY (outage_id) REFERENCES Outage(id)
+    )
+    """)
+
+    # ✅ **Chat Table** (Crew-Customer Communication)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Chat (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender_id INTEGER NOT NULL,
+        receiver_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    # ✅ **Notification Table** (For Sending Alerts)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Notification (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        message TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status TEXT DEFAULT 'unread'
+    )
+    """)
+
+    # ✅ **GPS Tracking Table** (For storing real-time locations)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS GPS_Tracking (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        crew_id INTEGER NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (crew_id) REFERENCES Crew(id)
+    )
+    """)
+
+    # ✅ **Routing Table** (Stores Crew Routes)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Routing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        crew_id INTEGER NOT NULL,
+        route_data TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (crew_id) REFERENCES Crew(id)
+    )
+    """)
+
+    conn.commit()
     conn.close()
-    
-    if tables:
-        st.success(f"✅ Database tables found: {tables}")
-    else:
-        st.error("⚠️ Database exists but has no tables!")
-except Exception as e:
-    st.error(f"❌ Database error: {e}")
+    st.success("✅ All tables have been created successfully!")
+
+# ✅ Run the function to ensure tables exist
+setup_database()
+
 
 # ✅ Initialize GPS session state if not already set
 if "crew_lat" not in st.session_state:
