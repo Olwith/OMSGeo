@@ -637,18 +637,19 @@ def mark_notifications_as_read(user_id):
 # ✅ **Streamlit UI**
 st.title("🚧 Crew Officer App - Task Management & Notifications")
 
-# ✅ **Sidebar for Menu, Location, and GPS Map**
-with st.subheader:
+# ✅ **Sidebar for Menu**
+with st.sidebar:
     st.subheader("📍 Menu")
 
-    # ✅ Main Menu Options
+    # ✅ Main Menu Options (including GPS & Route)
     menu = st.radio(
         "Navigate",
-        ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications"]
+        ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications", "GPS & Route"]
     )
 
-    # ✅ Crew Location Access
-    st.subheader("📍 Crew Location Access")
+# ✅ **GPS & Route Section**
+if menu == "GPS & Route":
+    st.header("📍 GPS & Route")
 
     # ✅ Inject JavaScript and display hidden div
     location_html = components.html(get_location_js, height=50)
@@ -669,6 +670,13 @@ with st.subheader:
         else:
             st.error("❌ Location access denied. Please enable GPS in browser settings.")
 
+    # ✅ Button to Get Route
+    if st.button("🚀 Get Route to Outage"):
+        if st.session_state.crew_lat and st.session_state.crew_lon and st.session_state.assigned_outage:
+            get_route_graphhopper()
+        else:
+            st.error("❌ Please ensure your location is fetched and an outage is assigned.")
+
     # ✅ GPS Map (only shown if location is available)
     if st.session_state.crew_lat and st.session_state.crew_lon:
         st.subheader("🗺️ GPS Map")
@@ -681,13 +689,22 @@ with st.subheader:
             icon=folium.Icon(color="blue")
         ).add_to(m)
 
+        # ✅ Add Route if available
+        if st.session_state.route:
+            folium.PolyLine(
+                locations=st.session_state.route,
+                color="blue",
+                weight=5,
+                opacity=0.7
+            ).add_to(m)
+
         # ✅ Render the Map
-        st_folium(m, width=300, height=300)
+        st_folium(m, width=700, height=500)
     else:
         st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
 
 # ✅ **Nearby Incidents Section**
-if menu == "Nearby Incidents":
+elif menu == "Nearby Incidents":
     st.header("📍 Nearby Incidents")
 
     crew_id = st.number_input("Enter Crew ID:", min_value=1, step=1)
