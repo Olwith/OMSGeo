@@ -635,10 +635,19 @@ def mark_notifications_as_read(user_id):
     conn.close()
 
 # ✅ **Streamlit UI**
-st.title("🚧 Crew Officer 9371 - Task Management")
+st.title("🚧 Crew Officer App - Task Management & Notifications")
 
-# ✅ **Sidebar for Location and Menu**
+# ✅ **Sidebar for Menu, Location, and GPS Map**
 with st.sidebar:
+    st.subheader("📍 Menu")
+
+    # ✅ Main Menu Options
+    menu = st.radio(
+        "Navigate",
+        ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications"]
+    )
+
+    # ✅ Crew Location Access
     st.subheader("📍 Crew Location Access")
 
     # ✅ Inject JavaScript and display hidden div
@@ -660,10 +669,9 @@ with st.sidebar:
         else:
             st.error("❌ Location access denied. Please enable GPS in browser settings.")
 
-    st.subheader("🗺️ GPS Map")
-
-    # ✅ Show map only if location is available
+    # ✅ GPS Map (only shown if location is available)
     if st.session_state.crew_lat and st.session_state.crew_lon:
+        st.subheader("🗺️ GPS Map")
         m = folium.Map(location=[st.session_state.crew_lat, st.session_state.crew_lon], zoom_start=15)
 
         # ✅ Add Crew Location Marker
@@ -677,9 +685,6 @@ with st.sidebar:
         st_folium(m, width=300, height=300)
     else:
         st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
-
-# ✅ **Main Menu**
-menu = st.sidebar.radio("📍 Menu", ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications"])
 
 # ✅ **Nearby Incidents Section**
 if menu == "Nearby Incidents":
