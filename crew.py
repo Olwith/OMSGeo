@@ -199,11 +199,9 @@ components.html(get_location_js, height=100)
 
 # ✅ Button to Fetch Location
 if st.button("📍 Fetch My Location"):
-    location_text = st.empty()  # Create an empty container for location text
-    location_value = location_text.text("Waiting for location...")  # Initialize text
-
-    # ✅ Store Location in Session State
-    if "," in location_value:
+    location_value = st_javascript("document.getElementById('location-data').innerText;")
+    
+    if location_value and "," in location_value:
         lat, lon = map(float, location_value.split(","))
         st.session_state.crew_lat = lat
         st.session_state.crew_lon = lon
