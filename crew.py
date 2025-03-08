@@ -635,8 +635,50 @@ def mark_notifications_as_read(user_id):
     conn.close()
 
 # ✅ **Streamlit UI**
-st.title("🚧 Crew Officer App - Task Management & Notifications")
+st.title("🚧 Crew Officer 9371 - Task Management")
 
+# ✅ **Sidebar for Location and Menu**
+with st.sidebar:
+    st.subheader("📍 Crew Location Access")
+
+    # ✅ Inject JavaScript and display hidden div
+    location_html = components.html(get_location_js, height=50)
+
+    # ✅ Extract location from the JavaScript output
+    location_text = st.empty()
+    location = location_text.text("Waiting for location...")
+
+    # ✅ Button to Fetch Location
+    if st.button("📍 Get My Location"):
+        # Read location from the JavaScript output
+        location_value = location_text.text("Waiting for location...")  # Pass a default value
+        if "," in location_value:
+            lat, lon = map(float, location_value.split(","))
+            st.session_state.crew_lat = lat
+            st.session_state.crew_lon = lon
+            st.success(f"✅ Location Updated: {lat}, {lon}")
+        else:
+            st.error("❌ Location access denied. Please enable GPS in browser settings.")
+
+    st.subheader("🗺️ GPS Map")
+
+    # ✅ Show map only if location is available
+    if st.session_state.crew_lat and st.session_state.crew_lon:
+        m = folium.Map(location=[st.session_state.crew_lat, st.session_state.crew_lon], zoom_start=15)
+
+        # ✅ Add Crew Location Marker
+        folium.Marker(
+            [st.session_state.crew_lat, st.session_state.crew_lon],
+            popup="📍 Crew Location",
+            icon=folium.Icon(color="blue")
+        ).add_to(m)
+
+        # ✅ Render the Map
+        st_folium(m, width=300, height=300)
+    else:
+        st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
+
+# ✅ **Main Menu**
 menu = st.sidebar.radio("📍 Menu", ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications"])
 
 # ✅ **Nearby Incidents Section**
@@ -797,42 +839,3 @@ elif menu == "💬 Messages":
             st.write(f"🕒 {timestamp} - **{sender_type}:** {message}")
     else:
         st.info("ℹ️ No chat history available.")
-
-st.subheader("📍 Crew Location Access")
-
-# ✅ Inject JavaScript and display hidden div
-location_html = components.html(get_location_js, height=50)
-
-# ✅ Extract location from the JavaScript output
-location_text = st.empty()
-location = location_text.text("Waiting for location...")
-
-# ✅ Button to Fetch Location
-if st.button("📍 Get My Location"):
-    # Read location from the JavaScript output
-    location_value = location_text.text("Waiting for location...")  # Pass a default value
-    if "," in location_value:
-        lat, lon = map(float, location_value.split(","))
-        st.session_state.crew_lat = lat
-        st.session_state.crew_lon = lon
-        st.success(f"✅ Location Updated: {lat}, {lon}")
-    else:
-        st.error("❌ Location access denied. Please enable GPS in browser settings.")
-
-st.subheader("🗺️ GPS Map")
-
-# ✅ Show map only if location is available
-if st.session_state.crew_lat and st.session_state.crew_lon:
-    m = folium.Map(location=[st.session_state.crew_lat, st.session_state.crew_lon], zoom_start=15)
-
-    # ✅ Add Crew Location Marker
-    folium.Marker(
-        [st.session_state.crew_lat, st.session_state.crew_lon],
-        popup="📍 Crew Location",
-        icon=folium.Icon(color="blue")
-    ).add_to(m)
-
-    # ✅ Render the Map
-    st_folium(m, width=700, height=500)
-else:
-    st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
