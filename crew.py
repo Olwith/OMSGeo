@@ -638,7 +638,7 @@ def mark_notifications_as_read(user_id):
 st.title("🚧 Crew Officer App - Task Management & Notifications")
 
 # ✅ **Sidebar for Menu, Location, and GPS Map**
-with st.sidebar:
+with st.subheader:
     st.subheader("📍 Menu")
 
     # ✅ Main Menu Options
