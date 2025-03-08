@@ -88,31 +88,26 @@ def create_map(center_lat, center_lon, zoom=12):
 
 
 # ✅ **Database Connection*
+import sqlite3
 import os
-import shutil
 
 # ✅ Define Database Path
-DB_NAME = "outage_management.db"
-DB_PATH = f"/tmp/{DB_NAME}"  # For Streamlit Cloud compatibility
+DB_PATH = "/tmp/outage_management.db"
 
-# ✅ Function to Connect to Database
+# ✅ Copy Database If Not Exists
+if not os.path.exists(DB_PATH):
+    import shutil
+    shutil.copy("outage_management.db", DB_PATH)  # Copy from project folder to /tmp
+
+# ✅ Connect to SQLite
 def connect_db():
     return sqlite3.connect(DB_PATH, check_same_thread=False)
 
-# ✅ Ensure Database Exists in /tmp/ (For Streamlit Cloud Hosting)
-if not os.path.exists(DB_PATH):
-    if os.path.exists(DB_NAME):  # If database exists in app directory, copy it
-        shutil.copy(DB_NAME, DB_PATH)
-        st.success("✅ Database copied successfully!")
-    else:
-        st.error("❌ Database file missing in app directory!")
-
-# ✅ Function to Create All Tables
-def setup_database():
+# ✅ Create Tables If Not Exists
+def create_tables():
     conn = connect_db()
     cursor = conn.cursor()
 
-    # ✅ **Customer Table**
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Customer (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,8 +117,17 @@ def setup_database():
         longitude REAL NOT NULL
     )
     """)
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Crew (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        status TEXT DEFAULT 'Available'
+    )
+    """)
 
-    # ✅ **Outage Table**
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Outage (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,18 +141,6 @@ def setup_database():
     )
     """)
 
-    # ✅ **Crew Table**
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Crew (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        status TEXT DEFAULT 'Available'
-    )
-    """)
-
-    # ✅ **Task Table** (Tracking assigned tasks)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Task (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,13 +148,11 @@ def setup_database():
         outage_id INTEGER NOT NULL,
         distance REAL NOT NULL,
         eta REAL NOT NULL,
-        status TEXT DEFAULT 'Assigned',
         FOREIGN KEY (crew_id) REFERENCES Crew(id),
         FOREIGN KEY (outage_id) REFERENCES Outage(id)
     )
     """)
 
-    # ✅ **Chat Table** (Crew-Customer Communication)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Chat (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,7 +163,6 @@ def setup_database():
     )
     """)
 
-    # ✅ **Notification Table** (For Sending Alerts)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS Notification (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -184,45 +173,15 @@ def setup_database():
     )
     """)
 
-    # ✅ **GPS Tracking Table** (For storing real-time locations)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS GPS_Tracking (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        crew_id INTEGER NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (crew_id) REFERENCES Crew(id)
-    )
-    """)
-
-    # ✅ **Routing Table** (Stores Crew Routes)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Routing (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        crew_id INTEGER NOT NULL,
-        route_data TEXT NOT NULL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (crew_id) REFERENCES Crew(id)
-    )
-    """)
-
     conn.commit()
     conn.close()
-    st.success("✅ All tables have been created successfully!")
 
-# ✅ Run the function to ensure tables exist
-setup_database()
+# ✅ Ensure Tables Exist Before Running App
+create_tables()
 
-
-
-# ✅ Initialize GPS session state if not already set
-if "crew_lat" not in st.session_state:
-    st.session_state.crew_lat = None
-if "crew_lon" not in st.session_state:
-    st.session_state.crew_lon = None
 
 # ✅ **Function to Get Crew GPS Location using HTML5 Geolocation**
+import streamlit as st
 import streamlit.components.v1 as components
 
 # ✅ JavaScript to Request Location Permissions
@@ -231,21 +190,36 @@ get_location_js = """
 function requestLocation() {
     navigator.geolocation.getCurrentPosition(
         (position) => {
-            document.getElementById("location-data").innerText = 
-                position.coords.latitude + "," + position.coords.longitude;
+            const coords = position.coords.latitude + "," + position.coords.longitude;
+            document.getElementById("location-data").innerText = coords;
         },
         (error) => {
             document.getElementById("location-data").innerText = "error";
         }
     );
 }
-requestLocation();  // Auto-request location on page load
 </script>
+<button onclick="requestLocation()">📍 Get My Location</button>
 <div id="location-data">Waiting for location...</div>
 """
 
 # ✅ Inject JavaScript in Streamlit
-components.html(get_location_js, height=50)
+components.html(get_location_js, height=100)
+
+# ✅ Button to Fetch Location
+if st.button("📍 Fetch My Location"):
+    location_text = st.empty()  # Create an empty container for location text
+    location_value = location_text.text("Waiting for location...")  # Initialize text
+
+    # ✅ Store Location in Session State
+    if "," in location_value:
+        lat, lon = map(float, location_value.split(","))
+        st.session_state.crew_lat = lat
+        st.session_state.crew_lon = lon
+        st.success(f"✅ Location Updated: {lat}, {lon}")
+    else:
+        st.error("❌ Location access denied. Please enable GPS in browser settings.")
+
 
 
 
