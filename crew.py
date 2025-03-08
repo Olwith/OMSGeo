@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 import folium
-import time 
+import time
 from streamlit_folium import st_folium
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
@@ -78,11 +78,6 @@ def make_mobile_friendly():
 
 # ✅ **Apply Mobile Optimization**
 make_mobile_friendly()
-
-# ✅ **Create Mobile-Optimized Map**
-def create_map(center_lat, center_lon, zoom=12):
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, control_scale=True)
-    st_folium(m, width=400 if st.session_state.get("mobile_view") else 700, height=500)
 
 # ✅ **Database Connection**
 DB_PATH = "/tmp/outage_management.db"
@@ -196,20 +191,6 @@ function requestLocation() {
 
 # ✅ Inject JavaScript in Streamlit
 components.html(get_location_js, height=100)
-
-# ✅ Button to Fetch Location
-if st.button("📍 Fetch My Location"):
-    location_text = st.empty()  # Create an empty container for location text
-    location_value = location_text.text("Waiting for location...")  # Initialize text
-
-    # ✅ Store Location in Session State
-    if "," in location_value:
-        lat, lon = map(float, location_value.split(","))
-        st.session_state.crew_lat = lat
-        st.session_state.crew_lon = lon
-        st.success(f"✅ Location Updated: {lat}, {lon}")
-    else:
-        st.error("❌ Location access denied. Please enable GPS in browser settings.")
 
 # ✅ **Calculate Distance using Haversine formula (km)**
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -456,10 +437,6 @@ def get_route_graphhopper():
         else:
             st.error("❌ Unable to fetch route. Check API key or network.")
 
-# ✅ **Button to Get Route**
-if st.button("🚀 Get Route to Outage"):
-    get_route_graphhopper()
-
 # ✅ **Calculate Estimated Time of Arrival (ETA)**
 def calculate_eta(distance_km, speed_kmh=30):
     """
@@ -646,14 +623,10 @@ if menu == "Nearby Incidents":
     crew_id = st.number_input("Enter Crew ID:", min_value=1, step=1)
 
     # ✅ Ensure crew ID is valid before fetching incidents
-    if st.button("🔍 Show Nearby Incidents"):
-        if crew_id:
-            st.session_state["nearby_incidents"] = fetch_nearby_incidents(crew_id)
-        else:
-            st.error("❌ Please enter a valid Crew ID.")
-
-    # ✅ Retrieve stored incidents from session state
-    nearby_incidents = st.session_state.get("nearby_incidents", [])
+    if crew_id:
+        nearby_incidents = fetch_nearby_incidents(crew_id)
+    else:
+        st.error("❌ Please enter a valid Crew ID.")
 
     if not nearby_incidents:
         st.warning("❌ No nearby incidents available.")
@@ -674,7 +647,6 @@ if menu == "Nearby Incidents":
                    distance = round(calculate_distance(crew_lat, crew_lon, lat, lon), 2)  # ✅ Calculate distance
                    eta = round(distance / 0.5 * 10)  # ✅ Example ETA calculation (modify as needed)
                    assign_incident(crew_id, outage_id, distance, eta)  # ✅ Assign the task
-                   st.session_state["nearby_incidents"] = fetch_nearby_incidents(crew_id)  # ✅ Refresh list
                 else:
                    st.error("❌ Crew location not found. Please check Crew ID.")
 
@@ -686,11 +658,7 @@ elif menu == "Assigned Incidents":
 
     crew_id = st.number_input("Enter Crew ID:", min_value=1, step=1)
 
-    if st.button("📋 View Assigned Incidents"):
-        assigned_incidents = fetch_assigned_incidents(crew_id)
-        st.session_state["assigned_incidents"] = assigned_incidents
-
-    assigned_incidents = st.session_state.get("assigned_incidents", [])
+    assigned_incidents = fetch_assigned_incidents(crew_id)
 
     if not assigned_incidents:
         st.warning("❌ No assigned incidents.")
@@ -711,11 +679,7 @@ elif menu == "Assigned Tasks":
     st.header("🛠 Assigned Tasks")
     crew_id = st.number_input("Enter Your Crew ID:", min_value=1, step=1)
 
-    if st.button("🔄 Refresh Tasks"):
-        assigned_tasks = fetch_assigned_tasks(crew_id)
-        st.session_state["assigned_tasks"] = assigned_tasks
-
-    assigned_tasks = st.session_state.get("assigned_tasks", [])
+    assigned_tasks = fetch_assigned_tasks(crew_id)
 
     if not assigned_tasks:
         st.warning("❌ No tasks assigned.")
@@ -755,16 +719,15 @@ elif menu == "🔔 Notifications":
     st.header("🔔 Your Notifications")
     crew_id = st.number_input("Enter Your Crew ID:", min_value=1, step=1)
 
-    if st.button("📩 Refresh Notifications"):
-        notifications = fetch_unread_notifications(crew_id)
-        if notifications:
-            for note in notifications:
-                st.write(f"📌 {note[2]}: {note[1]}")
-            if st.button("✅ Mark All as Read"):
-                mark_notifications_as_read(crew_id)
-                st.success("✅ All notifications marked as read.")
-        else:
-            st.info("ℹ️ No new notifications.")
+    notifications = fetch_unread_notifications(crew_id)
+    if notifications:
+        for note in notifications:
+            st.write(f"📌 {note[2]}: {note[1]}")
+        if st.button("✅ Mark All as Read"):
+            mark_notifications_as_read(crew_id)
+            st.success("✅ All notifications marked as read.")
+    else:
+        st.info("ℹ️ No new notifications.")
 
 elif menu == "💬 Messages":
     st.header("💬 Chat with Customers")
@@ -780,14 +743,8 @@ elif menu == "💬 Messages":
             send_message(crew_id, assigned_customer_id, message)
             st.success("✅ Message sent!")
 
-    # ✅ Refresh Chat History Button
-    if st.button("🔄 Refresh Chat"):
-        chat_history = fetch_chat_history(crew_id)
-        st.session_state["chat_history"] = chat_history
-        st.success("✅ Chat refreshed!")
-
     # ✅ Display Chat History
-    chat_history = st.session_state.get("chat_history", fetch_chat_history(crew_id))
+    chat_history = fetch_chat_history(crew_id)
 
     if chat_history:
         st.subheader("📜 Chat History")
