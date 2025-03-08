@@ -91,6 +91,12 @@ def create_map(center_lat, center_lon, zoom=12):
 DB_PATH = "/tmp/outage_management.db"  # Use /tmp instead of local paths
 conn = sqlite3.connect(DB_PATH, check_same_thread=False)
 
+# ✅ Initialize GPS session state if not already set
+if "crew_lat" not in st.session_state:
+    st.session_state.crew_lat = None
+if "crew_lon" not in st.session_state:
+    st.session_state.crew_lon = None
+
 # ✅ **Function to Get Crew GPS Location using HTML5 Geolocation**
 import streamlit.components.v1 as components
 
@@ -116,10 +122,6 @@ requestLocation();  // Auto-request location on page load
 # ✅ Inject JavaScript in Streamlit
 components.html(get_location_js, height=50)
 
-
-
-# ✅ **Fetch Crew GPS Location**
-get_browser_gps()
 
 
 # ✅ **Calculate Distance using Haversine formula (km)**
@@ -742,37 +744,41 @@ elif menu == "💬 Messages":
     else:
         st.info("ℹ️ No chat history available.")
 
-# ✅ **Enhanced Map UI for Crew Tracking & Routing**
-st.header("🚗 Crew GPS Tracking & Routing")
+st.subheader("📍 Crew Location Access")
 
+# ✅ Inject JavaScript and display hidden div
+location_html = components.html(get_location_js, height=50)
+
+# ✅ Extract location from the JavaScript output
+location_text = st.empty()
+location = location_text.text("Waiting for location...")
+
+# ✅ Button to Fetch Location
+if st.button("📍 Get My Location"):
+    # Read location from the JavaScript output
+    location_value = location_text.text()  # Extract stored value
+    
+    if "," in location_value:
+        lat, lon = map(float, location_value.split(","))
+        st.session_state.crew_lat = lat
+        st.session_state.crew_lon = lon
+        st.success(f"✅ Location Updated: {lat}, {lon}")
+    else:
+        st.error("❌ Location access denied. Please enable GPS in browser settings.")
+st.subheader("🗺️ GPS Map")
+
+# ✅ Show map only if location is available
 if st.session_state.crew_lat and st.session_state.crew_lon:
     m = folium.Map(location=[st.session_state.crew_lat, st.session_state.crew_lon], zoom_start=15)
 
-    # ✅ Crew Location Marker
+    # ✅ Add Crew Location Marker
     folium.Marker(
-        [st.session_state.crew_lat, st.session_state.crew_lon], 
+        [st.session_state.crew_lat, st.session_state.crew_lon],
         popup="📍 Crew Location",
         icon=folium.Icon(color="blue")
     ).add_to(m)
 
-    # ✅ Outage Location Marker (If Assigned)
-    if st.session_state.assigned_outage:
-        folium.Marker(
-            [st.session_state.assigned_outage["lat"], st.session_state.assigned_outage["lon"]], 
-            popup=f"⚡ Outage {st.session_state.assigned_outage['id']}",
-            icon=folium.Icon(color="red")
-        ).add_to(m)
-
-        # ✅ Plot Route from GraphHopper
-        if st.session_state.route:
-            folium.PolyLine(
-                locations=[[lat, lon] for lon, lat in st.session_state.route],
-                color="blue",
-                weight=5
-            ).add_to(m)
-
-    # ✅ Display Map
+    # ✅ Render the Map
     st_folium(m, width=700, height=500)
 else:
-    st.error("❌ GPS location not found. Please enable location services.")
-
+    st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
