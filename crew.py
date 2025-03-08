@@ -89,6 +89,7 @@ def create_map(center_lat, center_lon, zoom=12):
 
 # ✅ **Database Connection**
 import shutil
+DB_PATH = "C:/Users/User/Desktop"
 if not os.path.exists(DB_PATH):
     shutil.copy("outage_management.db", DB_PATH)  # Copy from app directory to /tmp
 
