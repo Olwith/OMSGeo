@@ -117,12 +117,6 @@ requestLocation();  // Auto-request location on page load
 components.html(get_location_js, height=50)
 
 
-# ✅ Store Crew Location in Session State
-if location_data and "lat" in location_data and "lon" in location_data:
-    st.session_state.crew_lat = location_data["lat"]
-    st.session_state.crew_lon = location_data["lon"]
-else:
-    st.error("❌ Location access denied. Enable GPS in browser settings.")
 
 # ✅ **Fetch Crew GPS Location**
 get_browser_gps()
