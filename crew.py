@@ -78,20 +78,13 @@ def make_mobile_friendly():
 
 # ✅ **Apply Mobile Optimization**
 make_mobile_friendly()
+
 # ✅ **Create Mobile-Optimized Map**
 def create_map(center_lat, center_lon, zoom=12):
     m = folium.Map(location=[center_lat, center_lon], zoom_start=zoom, control_scale=True)
-
-    # ✅ Adjust map size for mobile
     st_folium(m, width=400 if st.session_state.get("mobile_view") else 700, height=500)
 
-
-
-# ✅ **Database Connection*
-import sqlite3
-import os
-
-# ✅ Define Database Path
+# ✅ **Database Connection**
 DB_PATH = "/tmp/outage_management.db"
 
 # ✅ Copy Database If Not Exists
@@ -179,9 +172,7 @@ def create_tables():
 # ✅ Ensure Tables Exist Before Running App
 create_tables()
 
-
 # ✅ **Function to Get Crew GPS Location using HTML5 Geolocation**
-import streamlit as st
 import streamlit.components.v1 as components
 
 # ✅ JavaScript to Request Location Permissions
@@ -220,9 +211,6 @@ if st.button("📍 Fetch My Location"):
     else:
         st.error("❌ Location access denied. Please enable GPS in browser settings.")
 
-
-
-
 # ✅ **Calculate Distance using Haversine formula (km)**
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371  
@@ -231,6 +219,7 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     a = sin(dlat / 2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
+
 # ✅ **Update Crew Location in Database**
 def update_crew_location(crew_id, latitude, longitude):
     conn = connect_db()
@@ -248,6 +237,7 @@ def get_crew_location(crew_id):
     crew_location = cursor.fetchone()
     conn.close()
     return crew_location if crew_location else (None, None)
+
 # ✅ **Fetch Outage Location**
 def get_outage_location(outage_id):
     conn = connect_db()
@@ -263,13 +253,9 @@ def get_outage_location(outage_id):
     conn.close()
     
     if outage_location:
-        return outage_location[0],outage_location[1]#Return as tuple (lat,lon)
+        return outage_location[0], outage_location[1]  # Return as tuple (lat, lon)
     else:
-        return None,None #Prevent errors by returning none values
-
-
-
-
+        return None, None  # Prevent errors by returning none values
 
 # ✅ **Fetch Nearby Incidents**
 def fetch_nearby_incidents(crew_id):
@@ -306,9 +292,10 @@ def fetch_nearby_incidents(crew_id):
 
     conn.close()
     return nearby_outages
-    # ✅ **Function to Assign Outage**
+
+# ✅ **Function to Assign Outage**
 def assign_outage(crew_id, outage_id):
-    conn = sqlite3.connect("C:/Users/User/Desktop/outage_management.db", timeout=10, check_same_thread=False)
+    conn = connect_db()
     cursor = conn.cursor()
 
     # ✅ Fetch Outage Location
@@ -328,9 +315,6 @@ def assign_outage(crew_id, outage_id):
         st.error("❌ Outage location not found.")
     
     conn.close()
-
-
-
 
 # ✅ **Fetch Assigned Incidents (Not Yet Started)**
 def fetch_assigned_incidents(crew_id):
@@ -385,6 +369,7 @@ def fetch_assigned_task_location(crew_id):
     task_location = cursor.fetchone()
     conn.close()
     return task_location if task_location else (None, None)
+
 # ✅ **Fetch Crew's Assigned Task**
 def fetch_assigned_task(crew_id):
     conn = connect_db()
@@ -401,7 +386,6 @@ def fetch_assigned_task(crew_id):
     return task if task else None
 
 # ✅ **Update Task Status**
-
 def assign_incident(crew_id, outage_id, distance, eta):
     conn = connect_db()
     cursor = conn.cursor()
@@ -417,6 +401,10 @@ def assign_incident(crew_id, outage_id, distance, eta):
     INSERT INTO Task (crew_id, outage_id, distance, eta)
     VALUES (?, ?, ?, ?)
     """, (crew_id, outage_id, distance, eta))
+    
+    conn.commit()
+    conn.close()
+
 def get_least_loaded_crew():
     """Finds the crew with the least number of assigned tasks."""
     conn = connect_db()
@@ -443,8 +431,6 @@ def assign_incident_to_best_crew(outage_id):
     else:
         st.error("❌ No available crew to assign.")
 
-
-    conn.commit()
 def get_crew_location(crew_id):
     conn = connect_db()
     cursor = conn.cursor()
@@ -453,16 +439,6 @@ def get_crew_location(crew_id):
     conn.close()
     return crew_location if crew_location else (None, None)  # Return None if crew not found
 
-
-    # ✅ Notify the customer
-    cursor.execute("SELECT customer_id FROM Outage WHERE id = ?", (outage_id,))
-    customer_id = cursor.fetchone()[0]
-
-    send_notification(customer_id, f"A crew has been assigned to your outage (ID: {outage_id}).")
-    send_notification(crew_id, f"You have been assigned to an outage (ID: {outage_id}).")
-
-    conn.close()
-    st.success(f"✅ Task {outage_id} assigned successfully!")
 # ✅ **Function to Fetch Route from GraphHopper API**
 def get_route_graphhopper():
     if st.session_state.crew_lat and st.session_state.crew_lon and st.session_state.assigned_outage:
@@ -509,8 +485,6 @@ def verify_task_update(task_id):
     conn.close()
     
     st.write(f"🔎 Updated Task: {task}")  # ✅ Display updated row in Streamlit
-
-
 
 def update_task_status(task_id, new_status, distance):
     """
@@ -568,7 +542,6 @@ def update_task_status(task_id, new_status, distance):
     st.error("❌ Failed to update task status after multiple retries.")
     return False  # ✅ Return failure if all retries fail
 
-
 # ✅ **Fetch Assigned Tasks**
 def fetch_assigned_tasks(crew_id):
     conn = connect_db()
@@ -583,8 +556,6 @@ def fetch_assigned_tasks(crew_id):
     assigned_tasks = cursor.fetchall()
     conn.close()  # ✅ Ensure connection is closed properly
     return assigned_tasks
-
-
 
 # ✅ **Mark Task as Resolved**
 def resolve_task(task_id):
@@ -604,7 +575,6 @@ def resolve_task(task_id):
 
     conn.close()
     st.success(f"✅ Task {task_id} marked as Resolved!")
-
 
 # ✅ Send Message
 def send_message(sender_id, receiver_id, message):
@@ -630,12 +600,7 @@ def fetch_chat_history(crew_id):
     chat_history = cursor.fetchall()
     conn.close()
     return chat_history
-    from streamlit_autorefresh import st_autorefresh
 
-    # ✅ Auto-refresh every 10 seconds instead of locking database
-    st_autorefresh(interval=10 * 1000, key="chat_refresh")
-
-    chat_history = fetch_chat_history(crew_id)  # ✅ Fetch new messages
 # ✅ **Send Notification**
 def send_notification(user_id, message):
     conn = connect_db()
@@ -668,19 +633,11 @@ def mark_notifications_as_read(user_id):
     """, (user_id,))
     conn.commit()
     conn.close()
-# ✅ **Function to Send Push Notifications**
-def send_notification(user_id, message):
-    conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Notification (user_id, message, status) VALUES (?, ?, 'unread')", (user_id, message))
-    conn.commit()
-    conn.close()
-
 
 # ✅ **Streamlit UI**
 st.title("🚧 Crew Officer App - Task Management & Notifications")
 
-menu = st.sidebar.radio("📍 Menu", ["Nearby Incidents", "Assigned Incidents","Assigned Tasks","💬 Messages" ,"🔔 Notifications"])
+menu = st.sidebar.radio("📍 Menu", ["Nearby Incidents", "Assigned Incidents", "Assigned Tasks", "💬 Messages", "🔔 Notifications"])
 
 # ✅ **Nearby Incidents Section**
 if menu == "Nearby Incidents":
@@ -721,10 +678,7 @@ if menu == "Nearby Incidents":
                 else:
                    st.error("❌ Crew location not found. Please check Crew ID.")
 
-
-
         st_folium(m, width=700, height=500)
-
 
 # ✅ **Assigned Incidents Section**
 elif menu == "Assigned Incidents":
@@ -751,6 +705,7 @@ elif menu == "Assigned Incidents":
             st.write(f"✅ **Assigned Task:** Outage ID {outage_id} | Description: {description}")
 
         st_folium(m, width=700, height=500)
+
 # ✅ **Assigned Tasks Section**
 elif menu == "Assigned Tasks":
     st.header("🛠 Assigned Tasks")
@@ -855,8 +810,7 @@ location = location_text.text("Waiting for location...")
 # ✅ Button to Fetch Location
 if st.button("📍 Get My Location"):
     # Read location from the JavaScript output
-    location_value = location_text.text()  # Extract stored value
-    
+    location_value = location_text.text("Waiting for location...")  # Pass a default value
     if "," in location_value:
         lat, lon = map(float, location_value.split(","))
         st.session_state.crew_lat = lat
@@ -864,6 +818,7 @@ if st.button("📍 Get My Location"):
         st.success(f"✅ Location Updated: {lat}, {lon}")
     else:
         st.error("❌ Location access denied. Please enable GPS in browser settings.")
+
 st.subheader("🗺️ GPS Map")
 
 # ✅ Show map only if location is available
