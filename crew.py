@@ -178,40 +178,40 @@ import streamlit.components.v1 as components
 # ✅ JavaScript to Request Location Permissions and Fetch Route
 get_location_js = """
 <script>
-function requestLocation() {
+function requestLocation() {{
     navigator.geolocation.getCurrentPosition(
-        (position) => {
+        (position) => {{
             const coords = position.coords.latitude + "," + position.coords.longitude;
             document.getElementById("location-data").innerText = coords;
-        },
-        (error) => {
+        }},
+        (error) => {{
             document.getElementById("location-data").innerText = "error";
-        }
+        }}
     );
-}
+}}
 
-function fetchRoute() {
+function fetchRoute() {{
     const crewLat = document.getElementById("crew-lat").innerText;
     const crewLon = document.getElementById("crew-lon").innerText;
     const outageLat = document.getElementById("outage-lat").innerText;
     const outageLon = document.getElementById("outage-lon").innerText;
 
-    if (crewLat && crewLon && outageLat && outageLon) {
-        const url = `https://graphhopper.com/api/1/route?point=${crewLat},${crewLon}&point=${outageLat},${outageLon}&profile=car&locale=en&points_encoded=false&key=${GRAPHOPPER_API_KEY}`;
+    if (crewLat && crewLon && outageLat && outageLon) {{
+        const url = `https://graphhopper.com/api/1/route?point=${{crewLat}},${{crewLon}}&point=${{outageLat}},${{outageLon}}&profile=car&locale=en&points_encoded=false&key=${{GRAPHOPPER_API_KEY}}`;
         fetch(url)
             .then(response => response.json())
-            .then(data => {
-                if (data.paths && data.paths[0]) {
+            .then(data => {{
+                if (data.paths && data.paths[0]) {{
                     document.getElementById("route-data").innerText = JSON.stringify(data.paths[0].points.coordinates);
-                }
-            })
-            .catch(error => {
+                }}
+            }})
+            .catch(error => {{
                 console.error("Error fetching route:", error);
-            });
-    } else {
+            }});
+    }} else {{
         console.error("Missing location data.");
-    }
-}
+    }}
+}}
 </script>
 <button onclick="requestLocation()">📍 Get My Location</button>
 <button onclick="fetchRoute()">🚀 Get Route to Outage</button>
