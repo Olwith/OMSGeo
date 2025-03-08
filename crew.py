@@ -87,11 +87,36 @@ def create_map(center_lat, center_lon, zoom=12):
 
 
 
-# ✅ **Database Connection**
+# ✅ **Database Connection*
 import shutil
-DB_PATH = "C:/Users/User/Desktop/outage_management.db"
+
+# ✅ Database filename
+DB_NAME = "outage_management.db"
+
+# ✅ Use /tmp/ directory on Streamlit Cloud
+DB_PATH = f"/tmp/{DB_NAME}"  
+
+# ✅ Copy database to /tmp/ if not already copied
 if not os.path.exists(DB_PATH):
-    shutil.copy("outage_management.db", DB_PATH)  # Copy from app directory to /tmp
+    if os.path.exists(DB_NAME):  # Ensure database exists in app directory
+        shutil.copy(DB_NAME, DB_PATH)  
+    else:
+        st.error("❌ Database file not found! Make sure it is uploaded to GitHub.")
+
+# ✅ Function to Connect to SQLite Database
+def connect_db():
+    return sqlite3.connect(DB_PATH, check_same_thread=False)
+
+# ✅ Test Connection
+try:
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
+    conn.close()
+    st.success(f"✅ Database loaded successfully! Tables: {tables}")
+except Exception as e:
+    st.error(f"❌ Database connection failed: {e}")
 
 
 # ✅ Initialize GPS session state if not already set
