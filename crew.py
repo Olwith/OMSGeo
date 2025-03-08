@@ -661,8 +661,9 @@ if menu == "GPS & Route":
     # ✅ Button to Fetch Location (with unique key)
     if st.button("📍 Get My Location", key="get_location_button"):
         # Read location from the JavaScript output
-        location_value = location_text.text("Waiting for location...")  # Pass a default value
-        if "," in location_value:
+        location_value = st_javascript("document.getElementById('location-data').innerText;")
+        
+        if location_value and "," in location_value:
             lat, lon = map(float, location_value.split(","))
             st.session_state.crew_lat = lat
             st.session_state.crew_lon = lon
