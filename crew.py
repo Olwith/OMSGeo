@@ -175,7 +175,7 @@ create_tables()
 # ✅ **Function to Get Crew GPS Location using HTML5 Geolocation**
 import streamlit.components.v1 as components
 
-# ✅ JavaScript to Request Location Permissions
+# ✅ JavaScript to Request Location Permissions and Fetch Route
 get_location_js = """
 <script>
 function requestLocation() {
@@ -189,25 +189,47 @@ function requestLocation() {
         }
     );
 }
+
+function fetchRoute() {
+    const crewLat = document.getElementById("crew-lat").innerText;
+    const crewLon = document.getElementById("crew-lon").innerText;
+    const outageLat = document.getElementById("outage-lat").innerText;
+    const outageLon = document.getElementById("outage-lon").innerText;
+
+    if (crewLat && crewLon && outageLat && outageLon) {
+        const url = `https://graphhopper.com/api/1/route?point=${crewLat},${crewLon}&point=${outageLat},${outageLon}&profile=car&locale=en&points_encoded=false&key=${GRAPHOPPER_API_KEY}`;
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.paths && data.paths[0]) {
+                    document.getElementById("route-data").innerText = JSON.stringify(data.paths[0].points.coordinates);
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching route:", error);
+            });
+    } else {
+        console.error("Missing location data.");
+    }
+}
 </script>
 <button onclick="requestLocation()">📍 Get My Location</button>
+<button onclick="fetchRoute()">🚀 Get Route to Outage</button>
 <div id="location-data">Waiting for location...</div>
+<div id="crew-lat" style="display: none;">{crew_lat}</div>
+<div id="crew-lon" style="display: none;">{crew_lon}</div>
+<div id="outage-lat" style="display: none;">{outage_lat}</div>
+<div id="outage-lon" style="display: none;">{outage_lon}</div>
+<div id="route-data" style="display: none;"></div>
 """
 
 # ✅ Inject JavaScript in Streamlit
-components.html(get_location_js, height=100)
-
-# ✅ Button to Fetch Location
-if st.button("📍 Fetch My Location"):
-    location_value = st_javascript("document.getElementById('location-data').innerText;")
-    
-    if location_value and "," in location_value:
-        lat, lon = map(float, location_value.split(","))
-        st.session_state.crew_lat = lat
-        st.session_state.crew_lon = lon
-        st.success(f"✅ Location Updated: {lat}, {lon}")
-    else:
-        st.error("❌ Location access denied. Please enable GPS in browser settings.")
+components.html(get_location_js.format(
+    crew_lat=st.session_state.crew_lat or "",
+    crew_lon=st.session_state.crew_lon or "",
+    outage_lat=st.session_state.assigned_outage["lat"] if st.session_state.assigned_outage else "",
+    outage_lon=st.session_state.assigned_outage["lon"] if st.session_state.assigned_outage else ""
+), height=150)
 
 # ✅ **Calculate Distance using Haversine formula (km)**
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -454,10 +476,6 @@ def get_route_graphhopper():
         else:
             st.error("❌ Unable to fetch route. Check API key or network.")
 
-# ✅ **Button to Get Route**
-if st.button("🚀 Get Route to Outage"):
-    get_route_graphhopper()
-
 # ✅ **Calculate Estimated Time of Arrival (ETA)**
 def calculate_eta(distance_km, speed_kmh=30):
     """
@@ -650,31 +668,16 @@ if menu == "GPS & Route":
     st.header("📍 GPS & Route")
 
     # ✅ Inject JavaScript and display hidden div
-    location_html = components.html(get_location_js, height=50)
+    location_html = components.html(get_location_js.format(
+        crew_lat=st.session_state.crew_lat or "",
+        crew_lon=st.session_state.crew_lon or "",
+        outage_lat=st.session_state.assigned_outage["lat"] if st.session_state.assigned_outage else "",
+        outage_lon=st.session_state.assigned_outage["lon"] if st.session_state.assigned_outage else ""
+    ), height=150)
 
     # ✅ Extract location from the JavaScript output
     location_text = st.empty()
     location = location_text.text("Waiting for location...")
-
-    # ✅ Button to Fetch Location (with unique key)
-    if st.button("📍 Get My Location", key="get_location_button"):
-        # Read location from the JavaScript output
-        location_value = st_javascript("document.getElementById('location-data').innerText;")
-        
-        if location_value and "," in location_value:
-            lat, lon = map(float, location_value.split(","))
-            st.session_state.crew_lat = lat
-            st.session_state.crew_lon = lon
-            st.success(f"✅ Location Updated: {lat}, {lon}")
-        else:
-            st.error("❌ Location access denied. Please enable GPS in browser settings.")
-
-    # ✅ Button to Get Route (with unique key)
-    if st.button("🚀 Get Route to Outage", key="get_route_button"):
-        if st.session_state.crew_lat and st.session_state.crew_lon and st.session_state.assigned_outage:
-            get_route_graphhopper()
-        else:
-            st.error("❌ Please ensure your location is fetched and an outage is assigned.")
 
     # ✅ GPS Map (only shown if location is available)
     if st.session_state.crew_lat and st.session_state.crew_lon:
