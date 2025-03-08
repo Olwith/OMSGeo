@@ -88,8 +88,10 @@ def create_map(center_lat, center_lon, zoom=12):
 
 
 # ✅ **Database Connection**
-DB_PATH = "/tmp/outage_management.db"  # Use /tmp instead of local paths
-conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+import shutil
+if not os.path.exists(DB_PATH):
+    shutil.copy("outage_management.db", DB_PATH)  # Copy from app directory to /tmp
+
 
 # ✅ Initialize GPS session state if not already set
 if "crew_lat" not in st.session_state:
