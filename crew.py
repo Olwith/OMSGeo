@@ -176,61 +176,61 @@ create_tables()
 import streamlit.components.v1 as components
 
 # ✅ JavaScript to Request Location Permissions and Fetch Route
+import streamlit as st
+import streamlit.components.v1 as components
+from streamlit_javascript import st_javascript
+
+# ✅ Initialize Session State for Persistence
+if "crew_lat" not in st.session_state:
+    st.session_state.crew_lat = None
+    st.session_state.crew_lon = None
+
+# ✅ JavaScript to Request Location Permissions
 get_location_js = """
 <script>
-function requestLocation() {{
+function requestLocation() {
     navigator.geolocation.getCurrentPosition(
-        (position) => {{
+        (position) => {
             const coords = position.coords.latitude + "," + position.coords.longitude;
             document.getElementById("location-data").innerText = coords;
-        }},
-        (error) => {{
+        },
+        (error) => {
             document.getElementById("location-data").innerText = "error";
-        }}
+        }
     );
-}}
-
-function fetchRoute() {{
-    const crewLat = document.getElementById("crew-lat").innerText;
-    const crewLon = document.getElementById("crew-lon").innerText;
-    const outageLat = document.getElementById("outage-lat").innerText;
-    const outageLon = document.getElementById("outage-lon").innerText;
-
-    if (crewLat && crewLon && outageLat && outageLon) {{
-        const url = `https://graphhopper.com/api/1/route?point=${{crewLat}},${{crewLon}}&point=${{outageLat}},${{outageLon}}&profile=car&locale=en&points_encoded=false&key=${{GRAPHOPPER_API_KEY}}`;
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {{
-                if (data.paths && data.paths[0]) {{
-                    document.getElementById("route-data").innerText = JSON.stringify(data.paths[0].points.coordinates);
-                }}
-            }})
-            .catch(error => {{
-                console.error("Error fetching route:", error);
-            }});
-    }} else {{
-        console.error("Missing location data.");
-    }}
-}}
+}
 </script>
 <button onclick="requestLocation()">📍 Get My Location</button>
-<button onclick="fetchRoute()">🚀 Get Route to Outage</button>
 <div id="location-data">Waiting for location...</div>
-<div id="crew-lat" style="display: none;">{crew_lat}</div>
-<div id="crew-lon" style="display: none;">{crew_lon}</div>
-<div id="outage-lat" style="display: none;">{outage_lat}</div>
-<div id="outage-lon" style="display: none;">{outage_lon}</div>
-<div id="route-data" style="display: none;"></div>
 """
 
 # ✅ Inject JavaScript in Streamlit
-components.html(get_location_js.format(
-    crew_lat=st.session_state.crew_lat or "",
-    crew_lon=st.session_state.crew_lon or "",
-    outage_lat=st.session_state.assigned_outage["lat"] if st.session_state.assigned_outage else "",
-    outage_lon=st.session_state.assigned_outage["lon"] if st.session_state.assigned_outage else ""
-), height=150)
+components.html(get_location_js, height=100)
 
+# ✅ Fetch Location Data from JavaScript
+location_value = st_javascript("document.getElementById('location-data').innerText;")
+
+# ✅ Update Session State with Location Data
+if location_value and "," in location_value:
+    lat, lon = map(float, location_value.split(","))
+    st.session_state.crew_lat = lat
+    st.session_state.crew_lon = lon
+    st.success(f"✅ Location Updated: {lat}, {lon}")
+elif location_value == "error":
+    st.error("❌ Location access denied. Please enable GPS in browser settings.")
+
+# ✅ Display Map (if location is available)
+if st.session_state.crew_lat and st.session_state.crew_lon:
+    st.subheader("🗺️ GPS Map")
+    m = folium.Map(location=[st.session_state.crew_lat, st.session_state.crew_lon], zoom_start=15)
+    folium.Marker(
+        [st.session_state.crew_lat, st.session_state.crew_lon],
+        popup="📍 Crew Location",
+        icon=folium.Icon(color="blue")
+    ).add_to(m)
+    st_folium(m, width=700, height=500)
+else:
+    st.warning("❗ Click 'Get My Location' to enable GPS tracking.")
 # ✅ **Calculate Distance using Haversine formula (km)**
 def calculate_distance(lat1, lon1, lat2, lon2):
     R = 6371  
