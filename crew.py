@@ -658,8 +658,8 @@ if menu == "GPS & Route":
     location_text = st.empty()
     location = location_text.text("Waiting for location...")
 
-    # ✅ Button to Fetch Location
-    if st.button("📍 Get My Location"):
+    # ✅ Button to Fetch Location (with unique key)
+    if st.button("📍 Get My Location", key="get_location_button"):
         # Read location from the JavaScript output
         location_value = location_text.text("Waiting for location...")  # Pass a default value
         if "," in location_value:
@@ -670,8 +670,8 @@ if menu == "GPS & Route":
         else:
             st.error("❌ Location access denied. Please enable GPS in browser settings.")
 
-    # ✅ Button to Get Route
-    if st.button("🚀 Get Route to Outage"):
+    # ✅ Button to Get Route (with unique key)
+    if st.button("🚀 Get Route to Outage", key="get_route_button"):
         if st.session_state.crew_lat and st.session_state.crew_lon and st.session_state.assigned_outage:
             get_route_graphhopper()
         else:
