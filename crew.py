@@ -88,29 +88,41 @@ def create_map(center_lat, center_lon, zoom=12):
 
 
 # ✅ **Database Connection**
-def connect_db():
-    return sqlite3.connect("C:/Users/User/Desktop/outage_management.db", timeout=10, check_same_thread=False)
+DB_PATH = "/tmp/outage_management.db"  # Use /tmp instead of local paths
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+
 # ✅ **Function to Get Crew GPS Location using HTML5 Geolocation**
-def get_browser_gps():
-    js_code = """
+import streamlit.components.v1 as components
+
+# ✅ JavaScript to Request Location Permissions
+get_location_js = """
+<script>
+function requestLocation() {
     navigator.geolocation.getCurrentPosition(
         (position) => {
-            const coords = {lat: position.coords.latitude, lon: position.coords.longitude};
-            document.getElementById("location-data").innerText = JSON.stringify(coords);
+            document.getElementById("location-data").innerText = 
+                position.coords.latitude + "," + position.coords.longitude;
         },
         (error) => {
             document.getElementById("location-data").innerText = "error";
         }
     );
-    """
-    location_data = st_javascript(js_code)
+}
+requestLocation();  // Auto-request location on page load
+</script>
+<div id="location-data">Waiting for location...</div>
+"""
 
-    # ✅ Store Crew Location in Session State
-    if location_data and "lat" in location_data and "lon" in location_data:
-        st.session_state.crew_lat = location_data["lat"]
-        st.session_state.crew_lon = location_data["lon"]
-    else:
-        st.error("❌ Location access denied. Enable GPS in browser settings.")
+# ✅ Inject JavaScript in Streamlit
+components.html(get_location_js, height=50)
+
+
+# ✅ Store Crew Location in Session State
+if location_data and "lat" in location_data and "lon" in location_data:
+    st.session_state.crew_lat = location_data["lat"]
+    st.session_state.crew_lon = location_data["lon"]
+else:
+    st.error("❌ Location access denied. Enable GPS in browser settings.")
 
 # ✅ **Fetch Crew GPS Location**
 get_browser_gps()
