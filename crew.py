@@ -90,34 +90,31 @@ def create_map(center_lat, center_lon, zoom=12):
 # ✅ **Database Connection*
 import shutil
 
-# ✅ Database filename
-DB_NAME = "outage_management.db"
-
-# ✅ Use /tmp/ directory on Streamlit Cloud
+DB_NAME = "outage_management.db"  
 DB_PATH = f"/tmp/{DB_NAME}"  
 
-# ✅ Copy database to /tmp/ if not already copied
+# ✅ Check if database already exists in /tmp/
 if not os.path.exists(DB_PATH):
-    if os.path.exists(DB_NAME):  # Ensure database exists in app directory
+    if os.path.exists(DB_NAME):  
         shutil.copy(DB_NAME, DB_PATH)  
+        st.success("✅ Database copied to /tmp/ successfully!")
     else:
-        st.error("❌ Database file not found! Make sure it is uploaded to GitHub.")
+        st.error("❌ Database file missing in app directory!")
 
-# ✅ Function to Connect to SQLite Database
-def connect_db():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
-
-# ✅ Test Connection
+# ✅ Try connecting and fetching tables
 try:
-    conn = connect_db()
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
     conn.close()
-    st.success(f"✅ Database loaded successfully! Tables: {tables}")
+    
+    if tables:
+        st.success(f"✅ Database tables found: {tables}")
+    else:
+        st.error("⚠️ Database exists but has no tables!")
 except Exception as e:
-    st.error(f"❌ Database connection failed: {e}")
-
+    st.error(f"❌ Database error: {e}")
 
 # ✅ Initialize GPS session state if not already set
 if "crew_lat" not in st.session_state:
